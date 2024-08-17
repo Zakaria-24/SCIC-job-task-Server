@@ -32,13 +32,12 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         const productsCollection = client.db("scic-products").collection("products");
-        
+
         app.get('/products', async (req, res) => {
             try {
                 // Extract query parameters
-                const { page=1, search, category, brand_name, minPrice, maxPrice, sortBy, sortOrder } = req.query;
-                const limit = 9;
-                const skip = (page - 1) * limit;
+                const { search, category, brand_name, minPrice, maxPrice, sortBy, sortOrder } = req.query;
+                
                 // Build the query object
                 const query = {};
 
@@ -75,7 +74,7 @@ async function run() {
                 }
 
                 // Fetch the results from the database
-                const results = await productsCollection.find(query).sort(sortOptions).skip(skip).limit(limit).toArray();
+                const results = await productsCollection.find(query).sort(sortOptions).toArray();
 
                 res.json(results);
 
