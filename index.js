@@ -34,9 +34,37 @@ async function run() {
 
         // get all products
         app.get("/products", async (req, res) => {
-            const result = await productsCollection.find().toArray();
-            res.send(result);
-        })
+
+            const { page = 1, search = "", sort = "" } = req.query;
+            const limit = 9;
+            const skip = (page - 1) * limit;
+
+            let query = {};
+            if (search) {
+                query = { brand_name : { $regex: search, $options: 'i' }}; 
+            }
+            // if (category_name) {
+            //     query = category_name;
+            // }
+            // if (brand) {
+            //     query = brand_name;
+            // }
+
+            let sortOption = {};
+            if (sort === "priceLowToHigh") {
+                sortOption.price = 1;
+            } else if (sort === "priceHighToLow") {
+                sortOption.price = -1;
+            } else if (sort === "newest") {
+                sortOption.createdAt = -1;
+            }
+
+            // const total = await productsCollection.countDocuments(query);
+            const products = await productsCollection.find(query).skip(skip).limit(limit).sort(sortOption).toArray();
+            // 
+            
+            res.send({ products });
+        });
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
