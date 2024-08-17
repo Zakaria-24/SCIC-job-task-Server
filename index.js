@@ -8,7 +8,8 @@ const app = express()
 const corsOptions = {
     origin: [
         'http://localhost:5173',
-        'http://localhost:5174'
+        'http://localhost:5174',
+        // 'https://scic-job-task-3f800.web.app'
     ],
     credentials: true,
     optionSuccessStatus: 200,
@@ -33,42 +34,134 @@ async function run() {
         const productsCollection = client.db("scic-products").collection("products");
 
         // get all products
-        app.get("/products", async (req, res) => {
+        // app.get("/products", async (req, res) => {
 
-            const { page = 1, search = "", sort = "" } = req.query;
-            const limit = 9;
-            const skip = (page - 1) * limit;
+        //     const { page = 1, search = "", sort = "" } = req.query;
+        //     const limit = 40;
+        //     const skip = (page - 1) * limit;
 
-            let query = {};
-            if (search) {
-                query = { brand_name : { $regex: search, $options: 'i' }}; 
-            }
-            // if (category_name) {
-            //     query = category_name;
-            // }
-            // if (brand) {
-            //     query = brand_name;
-            // }
+        //     let query = {};
+        //     if (search) {
+        //         query = { brand_name : { $regex: search, $options: 'i' }}; 
+        //     }
+        //     // if (category_name) {
+        //     //     query = category_name;
+        //     // }
+        //     // if (brand) {
+        //     //     query = brand_name;
+        //     // }
 
-            let sortOption = {};
-            if (sort === "priceLowToHigh") {
-                sortOption.price = 1;
-            } else if (sort === "priceHighToLow") {
-                sortOption.price = -1;
-            } else if (sort === "newest") {
-                sortOption.createdAt = -1;
-            }
+        //     let sortOption = {};
+        //     if (sort === "priceLowToHigh") {
+        //         sortOption.price = 1;
+        //     } else if (sort === "priceHighToLow") {
+        //         sortOption.price = -1;
+        //     } else if (sort === "newest") {
+        //         sortOption.createdAt = -1;
+        //     }
 
-            // const total = await productsCollection.countDocuments(query);
-            const products = await productsCollection.find(query).skip(skip).limit(limit).sort(sortOption).toArray();
-            // 
+        //     const total = await productsCollection.countDocuments(query);
+        //     const products = await productsCollection.find(query)
+        //     .sort(sortOption)
+        //     .skip(skip)
+        //     .limit(limit)
+        //     .toArray();
+        //     // 
             
-            res.send({ products });
+        //     res.send({ products, total });
+        // });
+
+
+ // get all products
+        // app.get("/products", async (req, res) => {
+
+        //     const { page = 1, search = "", sort = "" } = req.query;
+        //     const limit = 9;
+        //     const skip = (page - 1) * limit;
+
+        //     let query = {};
+        //     if (search) {
+        //         query = { brand_name: { $regex: search, $options: 'i' } };
+        //     }
+        //     // if (category_name) {
+        //     //     query = category_name;
+        //     // }
+        //     // if (brand) {
+        //     //     query = brand_name;
+        //     // }
+
+        //     let sortOption = {};
+        //     if (sort === "priceLowToHigh") {
+        //         sortOption.price = 1;
+        //     } else if (sort === "priceHighToLow") {
+        //         sortOption.price = -1;
+        //     } else if (sort === "newest") {
+        //         sortOption.createdAt = -1;
+        //     }
+
+        //     // const total = await productsCollection.countDocuments(query);
+        //     const products = await productsCollection.find(query).skip(skip).limit(limit).sort(sortOption).toArray();
+        //     // 
+
+        //     res.send({ products });
+        // });
+
+        app.get('/products', async (req, res) => {
+            try {
+                // Extract query parameters
+                const { search, category, brand_name, minPrice, maxPrice, sortBy, sortOrder } = req.query;
+
+                // Build the query object
+                const query = {};
+
+                // Search functionality using regex for handling capitalization, word spacing etc.
+                if (search) {
+                    query.$or = [
+                        // { category_name: { $regex: search, $options: 'i' } },
+                        { brand_name: { $regex: search, $options: 'i' } },
+                        // { short_description: { $regex: search, $options: 'i' } }
+                    ];
+                }
+
+                // Filter by category
+                if (category) {
+                    query.category_name = category;
+                }
+
+                // Filter by brand
+                if (brand_name) {
+                    query.brand_name = brand_name;
+                }
+
+                // Filter by price range
+                if (minPrice || maxPrice) {
+                    query.price = {};
+                    if (minPrice) query.price.$gte = parseFloat(minPrice);
+                    if (maxPrice) query.price.$lte = parseFloat(maxPrice);
+                }
+
+                // Sorting
+                const sortOptions = {};
+                if (sortBy) {
+                    sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
+                }
+
+                // Fetch the results from the database
+                const results = await productsCollection.find(query).sort(sortOptions).toArray();
+
+                res.json(results);
+
+            } catch (error) {
+                console.error('Error connecting to MongoDB:', error);
+                res.status(500).json({ error: 'Internal Server Error' });
+            }
         });
 
+
+
         // Send a ping to confirm a successful connection
-        await client.db("admin").command({ ping: 1 });
-        console.log("Pinged your deployment. You successfully connected to MongoDB!");
+        // await client.db("admin").command({ ping: 1 });
+        // console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
     }
 }
@@ -80,3 +173,5 @@ app.get('/', (req, res) => {
 })
 
 app.listen(port, () => console.log(`Server running on port ${port}`))
+
+
