@@ -33,11 +33,18 @@ async function run() {
     try {
         const productsCollection = client.db("scic-products").collection("products");
 
+        // app.get("/productsCount", async (req, res) => {
+        //     const count = await productsCollection.estimatedDocumentCount();
+        //     res.send({ count });
+        //   });
+
         app.get('/products', async (req, res) => {
             try {
                 // Extract query parameters
-                const { search, category, brand_name, minPrice, maxPrice, sortBy, sortOrder } = req.query;
-                
+                const { page = 0, size = 9, search, category, brand_name, minPrice, maxPrice, sortBy, sortOrder } = req.query;
+
+                const pageNumber = parseInt(page, 10);
+                const pageSize = parseInt(size, 10);
                 // Build the query object
                 const query = {};
 
@@ -74,9 +81,15 @@ async function run() {
                 }
 
                 // Fetch the results from the database
-                const results = await productsCollection.find(query).sort(sortOptions).toArray();
+                const results = await productsCollection.find(query).sort(sortOptions).skip(pageNumber * pageSize).limit(pageSize).toArray();
 
-                res.json(results);
+                // Count total documents for pagination
+                const totalCount = await productsCollection.countDocuments(query);
+
+                res.json({
+                    results,
+                    totalCount
+                });
 
             } catch (error) {
                 console.error('Error connecting to MongoDB:', error);
